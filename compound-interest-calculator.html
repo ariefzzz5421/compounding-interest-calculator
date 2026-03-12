@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compound Interest Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f0e;
+    --surface: #161918;
+    --surface2: #1e2220;
+    --border: #2a2f2c;
+    --accent: #b5f0a5;
+    --accent-dim: rgba(181,240,165,0.12);
+    --accent-text: #0d0f0e;
+    --text: #e8ede9;
+    --text-muted: #7a8c7d;
+    --text-dim: #3f4f42;
+    --red: #f47a6a;
+    --gold: #f0c96a;
+    --radius: 16px;
+    --radius-sm: 8px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Background grain */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  /* Header */
+  header { margin-bottom: 56px; }
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::after {
+    content: '';
+    display: inline-block;
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+    opacity: 0.5;
+  }
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(40px, 7vw, 72px);
+    line-height: 1.0;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  h1 em { color: var(--accent); font-style: italic; }
+  .subtitle {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 480px;
+    font-weight: 300;
+  }
+
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+
+  /* Panel */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-muted);
+  }
+  .panel-body { padding: 24px; }
+
+  /* Controls */
+  .control { margin-bottom: 28px; }
+  .control:last-child { margin-bottom: 0; }
+  .control-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .control-label { font-size: 13px; color: var(--text-muted); font-weight: 400; }
+  .control-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    outline: none;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.15s;
+    box-shadow: 0 0 0 4px rgba(181,240,165,0.15);
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: none;
+  }
+
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: 'Sora', sans-serif;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a8c7d' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+  }
+  select:focus { border-color: var(--accent); }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+  }
+  .stat.featured {
+    grid-column: 1 / -1;
+    background: var(--accent-dim);
+    border-color: rgba(181,240,165,0.25);
+  }
+  .stat-label { font-size: 11px; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 6px; }
+  .stat-value { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--text); line-height: 1; }
+  .stat.featured .stat-value { font-size: 38px; color: var(--accent); }
+  .stat-value.gain { color: #7ed47f; }
+
+  /* Chart panel */
+  .chart-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .chart-panel-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .chart-title { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--text-muted); }
+  .legend { display: flex; gap: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+  .chart-body { padding: 24px; }
+  .chart-wrap { position: relative; width: 100%; height: 320px; }
+
+  /* Milestones */
+  .milestones { margin-top: 24px; }
+  .milestones-title { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--text-muted); margin-bottom: 16px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .milestone-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .milestone {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    transition: border-color 0.2s;
+  }
+  .milestone.hit { border-color: rgba(181,240,165,0.35); background: rgba(181,240,165,0.05); }
+  .milestone-year { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .milestone-val { font-size: 14px; font-weight: 500; color: var(--text); }
+  .milestone.hit .milestone-val { color: var(--accent); }
+  .milestone-label { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+  /* Rule of 72 */
+  .rule72 {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-top: 24px;
+    font-size: 13px;
+  }
+  .rule72-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+  .rule72-text { color: var(--text-muted); line-height: 1.5; }
+  .rule72-text strong { color: var(--text); }
+
+  /* Footer */
+  footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+  @media (max-width: 600px) { footer { flex-direction: column; gap: 8px; text-align: center; } }
+
+  /* Animations */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .page > * { animation: fadeUp 0.5s ease both; }
+  header { animation-delay: 0.05s; }
+  .layout { animation-delay: 0.15s; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="eyebrow">Financial Calculator</div>
+    <h1>Compound<br><em>Interest</em></h1>
+    <p class="subtitle">See how your money grows exponentially over time — interest earning interest, year after year.</p>
+  </header>
+
+  <div class="layout">
+    <!-- Left: Controls -->
+    <div>
+      <div class="panel" style="margin-bottom:24px;">
+        <div class="panel-header">Parameters</div>
+        <div class="panel-body">
+          <div class="control">
+            <div class="control-header">
+              <span class="control-label">Initial Investment</span>
+              <span class="control-value" id="p-out">Rp 10,000,000</span>
+            </div>
+            <input type="range" id="principal" min="1000000" max="100000000" step="1000000" value="10000000">
+          </div>
+          <div class="control">
+            <div class="control-header">
+              <span class="control-label">Annual Interest Rate</span>
+              <span class="control-value" id="r-out">8%</span>
+            </div>
+            <input type="range" id="rate" min="1" max="25" step="1" value="8">
+          </div>
+          <div class="control">
+            <div class="control-header">
+              <span class="control-label">Time Period</span>
+              <span class="control-value" id="t-out">20 years</span>
+            </div>
+            <input type="range" id="years" min="1" max="40" step="1" value="20">
+          </div>
+          <div class="control">
+            <div class="control-label" style="margin-bottom:10px;">Compounding Frequency</div>
+            <select id="freq">
+              <option value="1">Yearly</option>
+              <option value="4">Quarterly</option>
+              <option value="12" selected>Monthly</option>
+              <option value="365">Daily</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary stats -->
+      <div class="stats-grid">
+        <div class="stat featured">
+          <div class="stat-label">Final Balance</div>
+          <div class="stat-value" id="stat-final">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Principal</div>
+          <div class="stat-value" id="stat-p" style="font-size:20px;">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Interest Earned</div>
+          <div class="stat-value gain" style="font-size:20px;" id="stat-i">—</div>
+        </div>
+      </div>
+
+      <!-- Rule of 72 -->
+      <div class="rule72">
+        <div class="rule72-label">Rule of 72</div>
+        <div class="rule72-text" id="rule72-text">—</div>
+      </div>
+    </div>
+
+    <!-- Right: Chart -->
+    <div>
+      <div class="chart-panel">
+        <div class="chart-panel-header">
+          <span class="chart-title">Growth Over Time</span>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#b5f0a5;"></div>Balance</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#3f4f42;"></div>Principal</div>
+          </div>
+        </div>
+        <div class="chart-body">
+          <div class="chart-wrap"><canvas id="chart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="milestones">
+        <div class="milestones-title">Key Milestones</div>
+        <div class="milestone-list" id="milestones"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Compound Interest Calculator</span>
+    <span>A = P(1 + r/n)<sup>nt</sup></span>
+  </footer>
+</div>
+
+<script>
+const fmt = (v) => {
+  if (v >= 1e12) return 'Rp ' + (v/1e12).toFixed(2) + 'T';
+  if (v >= 1e9) return 'Rp ' + (v/1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return 'Rp ' + (v/1e6).toFixed(1) + 'M';
+  return 'Rp ' + Math.round(v).toLocaleString('id-ID');
+};
+
+function calc(P, r, n, t) {
+  return P * Math.pow(1 + r/n, n*t);
+}
+
+let chartInst;
+
+function update() {
+  const P = +document.getElementById('principal').value;
+  const r = +document.getElementById('rate').value / 100;
+  const n = +document.getElementById('freq').value;
+  const t = +document.getElementById('years').value;
+
+  document.getElementById('p-out').textContent = fmt(P);
+  document.getElementById('r-out').textContent = document.getElementById('rate').value + '%';
+  document.getElementById('t-out').textContent = t + ' year' + (t > 1 ? 's' : '');
+
+  const final = calc(P, r, n, t);
+  const interest = final - P;
+
+  document.getElementById('stat-final').textContent = fmt(final);
+  document.getElementById('stat-p').textContent = fmt(P);
+  document.getElementById('stat-i').textContent = fmt(interest);
+
+  const doublingYears = (72 / (r * 100)).toFixed(1);
+  document.getElementById('rule72-text').innerHTML =
+    `At <strong>${(r*100).toFixed(0)}%</strong> annual return, your money doubles approximately every <strong>${doublingYears} years</strong>.`;
+
+  // Chart data
+  const labels = [], compound = [], principal = [];
+  const maxPts = Math.min(t, 40);
+  for (let i = 0; i <= maxPts; i++) {
+    const yr = Math.round(i * t / maxPts);
+    labels.push('Yr ' + yr);
+    compound.push(Math.round(calc(P, r, n, yr)));
+    principal.push(Math.round(P));
+  }
+
+  if (chartInst) chartInst.destroy();
+  chartInst = new Chart(document.getElementById('chart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          data: compound,
+          borderColor: '#b5f0a5',
+          backgroundColor: 'rgba(181,240,165,0.06)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+          pointHoverBackgroundColor: '#b5f0a5'
+        },
+        {
+          data: principal,
+          borderColor: '#3f4f42',
+          borderDash: [4,4],
+          fill: false,
+          tension: 0,
+          pointRadius: 0,
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1e2220',
+          borderColor: '#2a2f2c',
+          borderWidth: 1,
+          titleColor: '#7a8c7d',
+          bodyColor: '#e8ede9',
+          titleFont: { family: 'DM Mono', size: 11 },
+          bodyFont: { family: 'DM Mono', size: 13 },
+          callbacks: {
+            label: ctx => ctx.datasetIndex === 0
+              ? ' Balance: ' + fmt(ctx.raw)
+              : ' Principal: ' + fmt(ctx.raw)
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(42,47,44,0.6)', drawBorder: false },
+          ticks: { color: '#3f4f42', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 8 }
+        },
+        y: {
+          grid: { color: 'rgba(42,47,44,0.6)', drawBorder: false },
+          ticks: {
+            color: '#3f4f42',
+            font: { family: 'DM Mono', size: 10 },
+            maxTicksLimit: 6,
+            callback: v => fmt(v)
+          }
+        }
+      }
+    }
+  });
+
+  // Milestones
+  const milestoneYears = [1, 5, 10, 15, 20, 25, 30, 40].filter(y => y <= t || y === t);
+  if (!milestoneYears.includes(t)) milestoneYears.push(t);
+  milestoneYears.sort((a,b) => a-b);
+
+  const el = document.getElementById('milestones');
+  el.innerHTML = milestoneYears.map(y => {
+    const val = calc(P, r, n, y);
+    const hit = y <= t;
+    const multiplier = (val / P).toFixed(1);
+    return `<div class="milestone ${hit ? 'hit' : ''}">
+      <div class="milestone-year">Year ${y}</div>
+      <div class="milestone-val">${fmt(val)}</div>
+      <div class="milestone-label">${multiplier}× initial</div>
+    </div>`;
+  }).join('');
+}
+
+['principal','rate','years','freq'].forEach(id => {
+  document.getElementById(id).addEventListener('input', update);
+});
+
+update();
+</script>
+</body>
+</html>
